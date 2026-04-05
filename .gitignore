@@ -72,6 +72,7 @@ $RECYCLE.BIN/
 
 # Secrets and local signing (never commit)
 *.pfx
+*.pfx.base64.txt
 *.snk
 CmdPal_CI_Public.cer
 
