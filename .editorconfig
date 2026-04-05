@@ -1,0 +1,5 @@
+root = true
+
+# GitHub Actions parses workflow YAML as UTF-8. UTF-16 breaks triggers (e.g. "No event triggers defined in `on`").
+[.github/workflows/**]
+charset = utf-8
