@@ -40,9 +40,25 @@ Choose a password when prompted (or Enter for empty password).
 
 In the repo: **Settings → Secrets and variables → Actions → New repository secret**
 
+### What to paste for `CMDPAL_PFX_BASE64` (not the raw `.pfx`)
+
+A **`.pfx` file is binary**. If you open it in Notepad or Notepad++, it looks like gibberish—that is normal. **Do not copy that.** GitHub needs a **Base64-encoded** version of the **entire file** as **one long text line** (letters, digits, `+`, `/`, `=`).
+
+From **PowerShell**, in the folder that contains your PFX (repo root if you used `New-CmdPalSigningCertificate.ps1`):
+
+```powershell
+# Puts the Base64 string on the clipboard — paste that into the GitHub secret value.
+cd "<path-to-folder-containing-the-pfx>"
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\CmdPal_CI_Signing.pfx")) | Set-Clipboard
+```
+
+If your file is named differently, change only the filename inside `ReadAllBytes("...")`.
+
+Then: **New repository secret** → name **`CMDPAL_PFX_BASE64`** → paste (Ctrl+V) into **Secret** → Save.
+
 | Name | Value |
 |------|--------|
-| `CMDPAL_PFX_BASE64` | Base64 of the **PFX** file (single line). PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\CmdPal_CI_Signing.pfx")) \| Set-Clipboard` |
+| `CMDPAL_PFX_BASE64` | The **Base64 line** from the command above (entire clipboard contents). |
 | `CMDPAL_PFX_PASSWORD` | Optional. Only if you used a non-empty PFX password. If the PFX has no password, **omit** this secret entirely. |
 | `CMDPAL_PROD_PFX_BASE64` | Optional. If set, the **Release** workflow signs with this PFX instead of `CMDPAL_PFX_BASE64` (use a **public CA** cert for WinGet / strangers). See [WinGet-and-distribution.md](WinGet-and-distribution.md). |
 | `CMDPAL_PROD_PFX_PASSWORD` | Optional password for `CMDPAL_PROD_PFX_BASE64` only. |
