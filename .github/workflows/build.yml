@@ -6,8 +6,14 @@
 # Note: `secrets` cannot be used in `if:` expressions; signing is decided inside the script via env.
 name: Build
 
-# Paused: was push + PR; run manually from Actions tab when you want a build.
-on:
+# Quote 'on' so YAML 1.1 does not treat it as boolean true (breaks triggers).
+'on':
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
