@@ -6,8 +6,8 @@
 
 **Multi-engine web search for [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/)**
 
-[![GitHub Release](https://img.shields.io/github/v/release/zunaidFarouque/search-hub-extension-for-cmd-pal?logo=github)](https://github.com/zunaidFarouque/search-hub-extension-for-cmd-pal/releases)
-[![License: MIT](https://img.shields.io/github/license/zunaidFarouque/search-hub-extension-for-cmd-pal)](/LICENSE)
+[![Releases & MSIX](https://img.shields.io/badge/Releases-MSIX%20%7C%20build-0969DA?logo=github)](https://github.com/zunaidFarouque/search-hub-extension-for-cmd-pal/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](/LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-9-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download)
 
 </div>
