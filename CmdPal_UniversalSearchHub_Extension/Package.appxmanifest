@@ -12,7 +12,8 @@
     Name="ZunaidFarouque.CmdPalSearchHub"
     Publisher="CN=Zunaid Farouque"
     Version="0.0.1.0" />
-  <!-- Publisher must match the Subject of the PFX used to sign the MSIX (see docs/Signing.md). -->
+  <!-- Publisher must match the signing certificate used for the MSIX (see docs/Signing.md). -->
+  <!-- For WinGet / public installs: use a publicly trusted code-signing cert and set Publisher to match that cert (see docs/WinGet-and-distribution.md). -->
 
   <Properties>
     <DisplayName>CmdPal Search Hub</DisplayName>

@@ -93,6 +93,11 @@ jobs:
               throw 'MSIX has no Authenticode signature after build. Check PFX matches manifest Publisher.'
             }
             Write-Host "Signed by: $($sig.SignerCertificate.Subject)"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### MSIX signature"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Subject:** $($sig.SignerCertificate.Subject)"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Issuer:** $($sig.SignerCertificate.Issuer)"
+            $ss = $sig.SignerCertificate.Subject -eq $sig.SignerCertificate.Issuer
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Likely self-signed:** $ss (if true, end users need the published `.cer` unless using a public CA)"
           }
 
           if ($signed) {

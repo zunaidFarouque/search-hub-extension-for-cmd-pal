@@ -44,6 +44,8 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 |------|--------|
 | `CMDPAL_PFX_BASE64` | Base64 of the **PFX** file (single line). PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\CmdPal_CI_Signing.pfx")) \| Set-Clipboard` |
 | `CMDPAL_PFX_PASSWORD` | Optional. Only if you used a non-empty PFX password. If the PFX has no password, **omit** this secret entirely. |
+| `CMDPAL_PROD_PFX_BASE64` | Optional. If set, the **Release** workflow signs with this PFX instead of `CMDPAL_PFX_BASE64` (use a **public CA** cert for WinGet / strangers). See [WinGet-and-distribution.md](WinGet-and-distribution.md). |
+| `CMDPAL_PROD_PFX_PASSWORD` | Optional password for `CMDPAL_PROD_PFX_BASE64` only. |
 
 ## 3. Trust the public certificate on your PC (one time, no Developer Mode)
 
@@ -59,9 +61,11 @@ After a successful **Build** workflow:
 
 ## GitHub Release (signed MSIX for download)
 
-1. Add **`CMDPAL_PFX_BASE64`** (and optional **`CMDPAL_PFX_PASSWORD`**) as repository **Actions** secrets (same as CI build).
+1. Add **`CMDPAL_PFX_BASE64`** (and optional **`CMDPAL_PFX_PASSWORD`**) as repository **Actions** secrets (same as CI build). For **production / WinGet**, optionally add **`CMDPAL_PROD_PFX_BASE64`** (+ **`CMDPAL_PROD_PFX_PASSWORD`**) so **Release** uses the CA cert while **Build** can keep the test PFX.
 2. On GitHub: **Actions** → **Release** → **Run workflow**, leave tag **`v0.0.1`** (or set another `vMAJOR.MINOR.PATCH`).
-3. When the job finishes, open **Releases**: download **`CmdPal_CI_Public.cer`** and the **`.msix`**, trust the cert (Trusted People), then install the MSIX.
+3. When the job finishes, open **Releases**:
+   - **Self-signed:** download **`CmdPal_CI_Public.cer`** and the **`.msix`**, trust the cert (Trusted People), then install.
+   - **Public CA:** install the **`.msix`** directly on a clean PC; no `.cer` step. Confirm with `Get-AuthenticodeSignature` or **`scripts/Test-MsixSignature.ps1`**.
 
 From a machine with the repo and **`CmdPal_CI_Signing.pfx`** at the root:
 
@@ -99,9 +103,9 @@ Optional parameters: `-Branch main`, `-Workflow build.yml`, `-Owner yourUser`, `
 
 Exact names match the workflow artifact names; GitHub may wrap files in a zip per artifact.
 
-## Store / real distribution
+## Store / real distribution / WinGet
 
-Replace the publisher and use a real code-signing certificate from a public CA when you publish to the Microsoft Store or ship broadly.
+**Test signing** (this doc, self-signed + `.cer`) is for you, CI, and people who explicitly trust your cert. **Production** installs for arbitrary users and **WinGet** need a signature Windows trusts by default—usually a **code signing certificate from a public CA** or **Microsoft Store** distribution. Align **`Package.appxmanifest`** `Publisher` with the cert subject, then follow **[WinGet-and-distribution.md](WinGet-and-distribution.md)** and **[Submit-to-winget-pkgs.md](Submit-to-winget-pkgs.md)**.
 
 ## Local reinstall after code changes
 

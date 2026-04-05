@@ -96,8 +96,9 @@ More detail: [AGENTS.md](/AGENTS.md), [docs/Install-After-Code-Changes.md](/docs
 
 ## GitHub Releases
 
-- **Download:** [Releases](https://github.com/zunaidFarouque/search-hub-extension-for-cmd-pal/releases) — install the published **`.msix`** (or attach CI artifacts to a release).
-- **Publish a release:** Run [`.github/workflows/build.yml`](/.github/workflows/build.yml) (**workflow_dispatch**), take the **MSIX** from `CmdPal_UniversalSearchHub_Extension/AppPackages/...` or the workflow artifact, sign if needed per [docs/Signing.md](/docs/Signing.md), then create a GitHub Release and attach the package.
+- **Download:** [Releases](https://github.com/zunaidFarouque/search-hub-extension-for-cmd-pal/releases) — install the **`.msix`**. If the package is **self-signed**, import the matching **`CmdPal_CI_Public.cer`** to **Local Machine → Trusted People** first ([docs/Signing.md](/docs/Signing.md)). For **strangers / WinGet**, ship a **publicly trusted** (CA-signed) MSIX ([docs/WinGet-and-distribution.md](/docs/WinGet-and-distribution.md)).
+- **Create a release:** [Actions → Release](https://github.com/zunaidFarouque/search-hub-extension-for-cmd-pal/actions/workflows/release.yml) (**workflow_dispatch**). CI artifacts: [`.github/workflows/build.yml`](/.github/workflows/build.yml).
+- **WinGet:** Templates in [`winget-submission/`](winget-submission/README.md); submit via [docs/Submit-to-winget-pkgs.md](docs/Submit-to-winget-pkgs.md).
 
 ## Demo / screenshots
 
