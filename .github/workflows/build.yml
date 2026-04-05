@@ -115,7 +115,7 @@ jobs:
           } else {
             Add-Content -Path $env:GITHUB_OUTPUT -Value "has_cer=false"
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### MSIX signing"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "Unsigned build (CMDPAL_PFX_BASE64 not set). Windows shows an unknown publisher unless you use Developer Mode. See docs/Signing.md."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "Unsigned build (**CMDPAL_PFX_BASE64** not set in repo secrets). To sign CI artifacts: **Settings → Secrets and variables → Actions → New repository secret** named ``CMDPAL_PFX_BASE64`` (and optional ``CMDPAL_PFX_PASSWORD``). See [docs/Signing.md](/docs/Signing.md). Until then, Windows shows an unknown publisher unless you use Developer Mode."
           }
 
       - name: Upload MSIX artifact
