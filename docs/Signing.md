@@ -57,6 +57,19 @@ After a successful **Build** workflow:
 1. Download artifact **`msix-win-x64`**.
 2. Open the `.msix` → **Install**.
 
+## GitHub Release (signed MSIX for download)
+
+1. Add **`CMDPAL_PFX_BASE64`** (and optional **`CMDPAL_PFX_PASSWORD`**) as repository **Actions** secrets (same as CI build).
+2. On GitHub: **Actions** → **Release** → **Run workflow**, leave tag **`v0.0.1`** (or set another `vMAJOR.MINOR.PATCH`).
+3. When the job finishes, open **Releases**: download **`CmdPal_CI_Public.cer`** and the **`.msix`**, trust the cert (Trusted People), then install the MSIX.
+
+From a machine with the repo and **`CmdPal_CI_Signing.pfx`** at the root:
+
+```powershell
+$env:GH_TOKEN = '<personal access token with repo scope>'
+pwsh ./scripts/Publish-GitHubRelease.ps1 -Tag v0.0.1
+```
+
 ## Pull requests from forks
 
 If `CMDPAL_PFX_BASE64` is not set, the workflow still builds an **unsigned** MSIX (install requires Developer Mode or local signing). Fork PRs do not receive your secrets.

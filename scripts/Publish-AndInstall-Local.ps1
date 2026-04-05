@@ -30,6 +30,9 @@
 .PARAMETER NoForceUpdateFromAnyVersion
     Do not pass -ForceUpdateFromAnyVersion to Add-AppxPackage (stricter version rules).
 
+.PARAMETER SkipInstall
+    Build (and sign) only; do not elevate or run Add-AppxPackage. Use with -SignedPublish to produce a signed .msix for release.
+
 .EXAMPLE
     pwsh ./scripts/Publish-AndInstall-Local.ps1
 
@@ -47,7 +50,8 @@ param(
     [string] $MsixPath,
     [string] $Configuration = 'Release',
     [switch] $RemoveExisting,
-    [switch] $NoForceUpdateFromAnyVersion
+    [switch] $NoForceUpdateFromAnyVersion,
+    [switch] $SkipInstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,13 +63,43 @@ $cerPublicPath = Join-Path $repoRoot 'CmdPal_CI_Public.cer'
 $manifestPublisherCn = 'CN=Zunaid Farouque'
 
 function Get-SignToolExe {
-    $exe = Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter 'signtool.exe' -ErrorAction SilentlyContinue |
-        Sort-Object -Property FullName -Descending |
-        Select-Object -First 1
+    $all = @(Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter 'signtool.exe' -ErrorAction SilentlyContinue)
+    $x64 = $all | Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
+    $exe = if ($x64) { $x64 } else { $all | Sort-Object FullName -Descending | Select-Object -First 1 }
     if (-not $exe) {
         throw 'signtool.exe not found under Windows Kits. Install Windows SDK or VS C++ workload (see docs/Install-After-Code-Changes.md).'
     }
     return $exe.FullName
+}
+
+function Sign-MsixFile {
+    param(
+        [Parameter(Mandatory)][string] $MsixPath,
+        [Parameter(Mandatory)][string] $PfxPath,
+        [string] $PfxPasswordPlain
+    )
+    # MSBuild/signing breaks when paths contain spaces; sign via temp file + x64 signtool.
+    $signtool = Get-SignToolExe
+    $item = Get-Item -LiteralPath $MsixPath
+    $tempDir = Join-Path $env:TEMP ("cmdpal_sign_{0}" -f [guid]::NewGuid().ToString('n'))
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    $tempMsix = Join-Path $tempDir $item.Name
+    try {
+        Copy-Item -LiteralPath $item.FullName -Destination $tempMsix -Force
+        $signArgs = @('sign', '/fd', 'SHA256', '/f', $PfxPath)
+        if ($PfxPasswordPlain) {
+            $signArgs += @('/p', $PfxPasswordPlain)
+        }
+        $signArgs += $tempMsix
+        & $signtool @signArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "signtool failed with exit code $LASTEXITCODE."
+        }
+        Copy-Item -LiteralPath $tempMsix -Destination $item.FullName -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Find-PublishedMsix {
@@ -110,17 +144,8 @@ else {
             '/p:UapAppxPackageBuildMode=SideloadOnly',
             '/p:AppxBundle=Never'
         )
-        if ($SignedPublish) {
-            $pubArgs += '/p:AppxPackageSigningEnabled=true'
-            $pubArgs += "/p:PackageCertificateKeyFile=`"$pfxPath`""
-            $pwdPlain = if ($null -ne $PfxPassword -and $PfxPassword.Length -gt 0) { $PfxPassword } elseif ($env:CMDPAL_PFX_PASSWORD) { $env:CMDPAL_PFX_PASSWORD } else { '' }
-            if ($pwdPlain) {
-                $pubArgs += "/p:PackageCertificatePassword=$pwdPlain"
-            }
-        }
-        else {
-            $pubArgs += '/p:AppxPackageSigningEnabled=false'
-        }
+        # Always produce an unsigned package here; Sign-MsixFile applies the PFX (avoids SignTool path bugs with spaces).
+        $pubArgs += '/p:AppxPackageSigningEnabled=false'
         dotnet @pubArgs
     }
     finally {
@@ -129,6 +154,11 @@ else {
 
     $builtMsix = Find-PublishedMsix
     Write-Host "Published: $($builtMsix.FullName)"
+    if ($SignedPublish) {
+        $pwdPlain = if ($null -ne $PfxPassword -and $PfxPassword.Length -gt 0) { $PfxPassword } elseif ($env:CMDPAL_PFX_PASSWORD) { $env:CMDPAL_PFX_PASSWORD } else { '' }
+        Write-Host 'Signing MSIX with CmdPal_CI_Signing.pfx (signtool)...'
+        Sign-MsixFile -MsixPath $builtMsix.FullName -PfxPath $pfxPath -PfxPasswordPlain $pwdPlain
+    }
 }
 
 $sourceMsix = $builtMsix.FullName
@@ -141,7 +171,7 @@ if ($SignedPublish) {
     }
     $cerToTrust = $cerPublicPath
 }
-else {
+elseif (-not $SkipInstall) {
     # Ephemeral sign a copy so LocalMachine trust + Add-AppxPackage succeed for unsigned CI/local builds.
     $signtool = Get-SignToolExe
     $installMsix = Join-Path $env:TEMP ("CmdPalSearchHub_local_{0}.msix" -f [guid]::NewGuid().ToString('n'))
@@ -180,6 +210,17 @@ else {
     }
     $cerToTrust = Join-Path $env:TEMP ("cmdpal_ephemeral_{0}.cer" -f [guid]::NewGuid().ToString('n'))
     Export-Certificate -Cert $sig.SignerCertificate -FilePath $cerToTrust -Type CERT | Out-Null
+}
+
+if ($SkipInstall) {
+    Write-Host "SkipInstall: MSIX path: $sourceMsix"
+    if ($SignedPublish) {
+        Write-Host "Publish the matching trust certificate with your release: $cerPublicPath"
+    }
+    else {
+        Write-Host 'Tip: use -SignedPublish for a stable cert users can trust (see docs/Signing.md).'
+    }
+    return
 }
 
 $forceArg = if (-not $NoForceUpdateFromAnyVersion) { "-ForceUpdateFromAnyVersion" } else { '' }
